@@ -1,15 +1,19 @@
 # Github command line authentication
 
-Work in progress.
+Gets you an auth token by prompting the user on the command line (like [hub](http://github.com/github/hub) does).
 
-Gets you an auth token like [hub](http://github.com/github/hub) does.
-
-Based on code in hub and go-ocktokit.
+## Usage
 
 ```js
-var githubAuth = require('github-cli-auth');
+var getAuthToken = require('github-cli-auth');
 
-githubAuth(function(err, authToken)){
-
-}
+getAuthToken('token-name', function (err, authToken) {
+    console.log(authToken);
+});
 ```
+
+## Limitations
+
+* can't re-create token with same name (POST or GET existing could be done)
+* always asks for two-factor auth token
+* only supports repo authorization scope
