@@ -1,62 +1,31 @@
 'use strict';
 
-var request = require('request');
-var prompt = require('prompt');
-var async = require('async');
+var prompt = require('./lib/commandPrompt');
+var github = require('./lib/githubApi');
+var noop = function() {};
 
-module.exports = function getAuthToken (tokenName, callback) {
-    async.waterfall(
-        [
-            promptUser,
-            generateToken(tokenName),
-            getResult
-        ],
-        callback);
+module.exports = function getAuthToken (options, callback) {
+
+    var config = {
+        name: options.name,
+        load: options.load,
+        save: options.save
+    };
+
+    var authToken = config.load();
+    if(!authToken) {
+        createAuthToken(config.name, function(err, newToken) {
+            if(err) return callback(err);
+            config.save(newToken);
+            callback && callback(null, newToken);
+        });
+    } else {
+        callback && callback(null, authToken);
+    }
 };
 
-module.exports.prompt = prompt;
-
-function promptUser (callback) {
-    prompt.message = 'github.com';
-    prompt.start();
-    prompt.get({
-        properties: {
-            username: {
-                description: 'username'
-            },
-            password: {
-                description: 'password (never stored)',
-                hidden: true
-            },
-            oneTimePassword: {
-                description: '2-factor auth token'
-            }
-        }
-    }, callback);
-}
-
-function generateToken (tokenName) {
-    return function  (auth, callback) {
-        request.post({
-            url: 'https://api.github.com/authorizations',
-            body: {
-                scopes: [ 'repo' ],
-                note: tokenName
-            },
-            json: true,
-            auth: {
-                user: auth.username,
-                pass: auth.password
-            },
-            headers: {
-                'User-Agent': 'github-cli-auth',
-                'X-GitHub-OTP': auth.oneTimePassword
-            }
-        }, callback);
-    };
-}
-
-function getResult (res, body, callback) {
-    if(res.statusCode != 201) return callback(body);
-    callback(null, body.token);
+function createAuthToken (name, callback) {
+    prompt.getCredentials(function(err, credentials){
+        github.createNewToken(name, credentials, callback);
+    });
 }
